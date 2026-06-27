@@ -1,68 +1,71 @@
 ```
 # Compiled and build artifacts
+*.pyc
+__pycache__/
 *.o
 *.obj
-*.bin
-*.hex
+*.exe
+*.dll
+*.so
+*.class
 *.out
-*.elf
 
-# Simulation and synthesis outputs
-*.vcd
-*.fst
-*.vpd
-*.fsdb
-*.shm
-work/
-sim/
-synth/
-
-# Dependencies and temporary directories
-node_modules/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
+# Dependencies
 .venv/
-.env
-.env.local
-.env.*
+venv/
+node_modules/
+target/
+.gradle/
+.mypy_cache/
+.pytest_cache/
 
-# Logs and temporary files
+# Logs and temp files
 *.log
 *.tmp
-*.temp
-*.bak
-*.~*
-
-# Editors and IDEs
-.vscode/
-.idea/
 *.swp
 *.swo
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+
+# Build outputs
+dist/
+build/
+coverage/
+htmlcov/
+.coverage
+
+# System files
 .DS_Store
 Thumbs.db
 
-# Coverage and testing
-.coverage
-htmlcov/
-coverage/
-.nyc_output
-istanbul/
-.mypy_cache/
-.pytest_cache/
-.tox/
-
-# Build systems
-build/
-dist/
-target/
-.gradle/
-cmake_build/
-CMakeFiles/
-CMakeCache.txt
-Makefile
+# Compressed files
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
 ```

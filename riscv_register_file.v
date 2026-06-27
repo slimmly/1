@@ -14,42 +14,27 @@ module riscv_register_file (
     input wire [4:0]  rs2,           // Read register 2 address
     input wire [4:0]  rd,            // Write register address
     input wire [31:0] wd,            // Write data
-    output reg [31:0] rd1,           // Read data 1
-    output reg [31:0] rd2            // Read data 2
+    output wire [31:0] rd1,          // Read data 1
+    output wire [31:0] rd2           // Read data 2
 );
 
     // 32 registers, each 32 bits
     reg [31:0] registers [0:31];
     integer i;
-    
-    // Make registers accessible for testbench
-    wire [31:0] register_out [0:31];
-    generate
-        genvar g;
-        for (g = 0; g < 32; g = g + 1) begin
-            assign register_out[g] = registers[g];
-        end
-    endgenerate
 
     // Initialize registers on reset
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            for (i = 0; i < 32; i = i + 1) begin
+            for (i = 0; i < 32; i = i + 1)
                 registers[i] <= 32'b0;
-            end
         end else if (we && rd != 5'b0) begin
             // x0 is hardwired to 0, never write to it
             registers[rd] <= wd;
         end
     end
 
-    // Combinational read
-    always @(*) begin
-        rd1 = registers[rs1];
-        rd2 = registers[rs2];
-        // x0 always returns 0
-        if (rs1 == 5'b0) rd1 = 32'b0;
-        if (rs2 == 5'b0) rd2 = 32'b0;
-    end
+    // Combinational read - x0 always returns 0
+    assign rd1 = (rs1 == 5'b0) ? 32'b0 : registers[rs1];
+    assign rd2 = (rs2 == 5'b0) ? 32'b0 : registers[rs2];
 
 endmodule
