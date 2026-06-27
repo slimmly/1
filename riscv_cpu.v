@@ -52,7 +52,7 @@ module riscv_cpu (
     wire [10:0] wb_ctrl;
     wire        wb_valid;
 
-    // Control signals (packed as [10:0]: {jump, branch, pc_src, mem_to_reg, mem_write, mem_read, alu_src, reg_write})
+    // Control signals (packed as [10:0]: {jump, branch, pc_src, mem_to_reg, mem_write, mem_read, alu_src, alu_op[2:0], reg_write})
     wire        reg_write, alu_src, mem_read, mem_write, mem_to_reg, pc_src, jump, branch;
     wire [2:0]  alu_op;
     wire [2:0]  imm_type;
@@ -108,9 +108,9 @@ module riscv_cpu (
     //=========================================================================
     // Pipeline Registers
     //=========================================================================
-    // Control signal packing: [10:0] = {jump, branch, pc_src, mem_to_reg, mem_write, mem_read, alu_src, reg_write}
+    // Control signal packing: [10:0] = {jump, branch, pc_src, mem_to_reg, mem_write, mem_read, alu_src, alu_op[2:0], reg_write}
     wire [10:0] id_ctrl;
-    assign id_ctrl = {jump, branch, pc_src, mem_to_reg, mem_write, mem_read, alu_src, reg_write};
+    assign id_ctrl = {jump, branch, pc_src, mem_to_reg, mem_write, mem_read, alu_src, alu_op, reg_write};
     
     // Decode immediate type based on opcode
     reg [2:0] id_imm_type;
@@ -200,11 +200,11 @@ module riscv_cpu (
     riscv_register_file regfile (
         .clk(clk),
         .rst_n(rst_n),
-        .we(wb_valid && wb_ctrl[0]),  // reg_write
+        .we(wb_valid && wb_ctrl[3]),  // reg_write is at bit 3
         .rs1(id_rs1_addr),
         .rs2(id_rs2_addr),
         .rd(wb_rd_addr),
-        .wd(wb_ctrl[3] ? wb_mem_rdata : wb_alu_result),  // mem_to_reg select
+        .wd(wb_ctrl[7] ? wb_mem_rdata : wb_alu_result),  // mem_to_reg is at bit 7
         .rd1(rs1_data_raw),
         .rd2(rs2_data_raw)
     );
@@ -236,13 +236,16 @@ module riscv_cpu (
     // Forwarding Unit and Hazard Detection
     //=========================================================================
     // Unpack control signals
+    // Control signal packing: [10:0] = {jump, branch, pc_src, mem_to_reg, mem_write, mem_read, alu_src, alu_op[2:0], reg_write}
     wire ex_mem_jump, ex_mem_branch, ex_mem_pc_src, ex_mem_mem_to_reg, ex_mem_mem_write;
     wire ex_mem_mem_read, ex_mem_alu_src, ex_mem_reg_write;
+    wire [2:0] ex_mem_alu_op;
     wire mem_wb_jump, mem_wb_branch, mem_wb_pc_src, mem_wb_mem_to_reg, mem_wb_mem_write;
     wire mem_wb_mem_read, mem_wb_alu_src, mem_wb_reg_write;
+    wire [2:0] mem_wb_alu_op;
     
-    assign {ex_mem_jump, ex_mem_branch, ex_mem_pc_src, ex_mem_mem_to_reg, ex_mem_mem_write, ex_mem_mem_read, ex_mem_alu_src, ex_mem_reg_write} = ex_ctrl;
-    assign {mem_wb_jump, mem_wb_branch, mem_wb_pc_src, mem_wb_mem_to_reg, mem_wb_mem_write, mem_wb_mem_read, mem_wb_alu_src, mem_wb_reg_write} = wb_ctrl;
+    assign {ex_mem_jump, ex_mem_branch, ex_mem_pc_src, ex_mem_mem_to_reg, ex_mem_mem_write, ex_mem_mem_read, ex_mem_alu_src, ex_mem_alu_op, ex_mem_reg_write} = ex_ctrl;
+    assign {mem_wb_jump, mem_wb_branch, mem_wb_pc_src, mem_wb_mem_to_reg, mem_wb_mem_write, mem_wb_mem_read, mem_wb_alu_src, mem_wb_alu_op, mem_wb_reg_write} = wb_ctrl;
 
     // Forwarding logic
     wire fwd_ex_rs1, fwd_ex_rs2, fwd_mem_rs1, fwd_mem_rs2;
@@ -275,13 +278,13 @@ module riscv_cpu (
     
     // ALU input selection
     assign alu_a = ex_rs1_data;
-    assign alu_b = ex_ctrl[2] ? ex_imm : ex_rs2_data;  // alu_src
-
-    // ALU
+    assign alu_b = ex_ctrl[4] ? ex_imm : ex_rs2_data;  // alu_src is at bit 4
+    
+    // ALU operation: alu_op is at bits [6:4]
     riscv_alu alu (
         .a(alu_a),
         .b(alu_b),
-        .alu_op(ex_ctrl[7:5]),  // alu_op
+        .alu_op(ex_ctrl[6:4]),  // alu_op
         .result(alu_result),
         .zero(ex_zero)
     );
@@ -290,15 +293,17 @@ module riscv_cpu (
     // Stage 3: Memory (MEM)
     //=========================================================================
     assign mem_wdata = mem_rs2_data;
-    
+
     // Data memory
+    // Control signal packing: [10:0] = {jump, branch, pc_src, mem_to_reg, mem_write, mem_read, alu_src, alu_op[2:0], reg_write}
+    // mem_ctrl[5] = mem_write, mem_ctrl[4] = mem_read
     riscv_data_memory dmem (
         .clk(clk),
         .addr(32'h400 + mem_alu_result[9:0]),
         .wdata(mem_wdata),
-        .we(mem_ctrl[4]),  // mem_write
-        .mem_read(mem_ctrl[3]),
-        .mem_write(mem_ctrl[4]),
+        .we(mem_ctrl[5]),  // mem_write is at bit 5
+        .mem_read(mem_ctrl[4]),  // mem_read is at bit 4
+        .mem_write(mem_ctrl[5]),  // mem_write is at bit 5
         .rdata(mem_rdata)
     );
 
